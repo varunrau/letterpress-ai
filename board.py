@@ -7,10 +7,28 @@ class Board():
 	def __init__(self, letters=[]):
 		self.SIZE = 5
 		self.letters = letters
-		if self.letters:
-			self.letters = letters
+		self.played_words = set()
+		if isinstance(self.letters, basestring):
+			self.parseString()
 		else:
 			self.randomizeLetters()
+
+	def generateSuccessor(self, word, team):
+		if self.isLegalMove(word):
+			self.makeMove(word, team)
+			return self
+		return "CANT GENERATE SUCCESSOR"
+
+
+	def parseString(self):
+		string = self.letters
+		self.letters = []
+		for x in range(5):
+			self.letters.append([])
+			for y in range(5):
+				self.letters.append(string.pop(0))
+
+
 
 	def randomizeLetters(self):
 		for x in range(self.SIZE):
@@ -33,6 +51,13 @@ class Board():
 				lettersList.remove(letter)
 			else:
 				return False
+		for played_word in self.played_words:
+			if word == played_word:
+				return False
+			if len(word) < len(played_word):
+				for x in range(len(word)):
+					if word[x:] == played_word
+						return False
 		# Include check in letterpress' big list of words
 		return True
 
@@ -44,6 +69,41 @@ class Board():
 			self._updateProtected()
 		else:
 			print "ILLEGAL MOVE"
+
+
+
+
+	def isGameOver(self):
+		#usedLetters = 0
+		#for letter in self.letters:
+			#if letter.color is not None:
+				#usedLetters += 1
+		return sum(1 for i in self.letters if i.color is not None) == self.SIZE * self.SIZE
+
+
+	def isWin(self):
+		teams = {}
+		for letter in self.letters:
+			if letter.color is not None:
+				if teams[letter.color]:
+					teams[letter.color] += 1
+				else:
+					teams[letter.color] = 1
+		for team in teams:
+			if teams[team] > self.SIZE * self.SIZE / 2:
+				return team
+		return None
+
+
+
+	def legalMoves():
+		legalWords = []
+		words = open("word-list/Words/en.txt", "r")
+		for word in words:
+			if self.isLegalMove(word):
+				legalWords.append(word)
+		return legalWords
+
 
 
 	def _updateProtected(self):
