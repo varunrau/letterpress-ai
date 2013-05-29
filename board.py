@@ -1,40 +1,53 @@
 import random
 from letter import Letter
 from side import Side
+from move import Move
+import copy
 
 class Board():
 
 	def __init__(self, letters=[]):
-		self.SIZE = 5
+		self.SIZE = 2
 		self.letters = letters
 		self.played_words = set()
+		self.rules = ["self.availableLetter", "self.repeatPlay"]
 		if isinstance(self.letters, basestring):
 			self.parseString()
 		else:
 			self.randomizeLetters()
+		self.possibleWords = set()
+		self.calcPossibleWords()
+		print len(self.possibleWords)
+		print [w.getWord() for w in self.possibleWords]
+
 
 	def generateSuccessor(self, word, team):
-		if self.isLegalMove(word):
-			self.makeMove(word, team)
-			return self
-		return "CANT GENERATE SUCCESSOR"
+		self.makeMove(word, team)
+		self._updateLegalMoves()
+		return self
 
+
+	def getScore(self, team):
+		teamScore = sum([1 for i in self.getLetters() if i.color == team])
+		otherScore = sum([1 for i in self.getLetters() if not i.color == team and not i.color.isAssigned()])
+		return teamScore - otherScore
 
 	def parseString(self):
-		string = self.letters
+		string = []
+		for letter in self.letters:
+			string.append(letter)
 		self.letters = []
-		for x in range(5):
+		for x in range(self.SIZE):
 			self.letters.append([])
-			for y in range(5):
-				self.letters.append(string.pop(0))
-
+			for y in range(self.SIZE):
+				self.letters[x].append(Letter((x,y), string.pop(0)))
 
 
 	def randomizeLetters(self):
 		for x in range(self.SIZE):
 			self.letters.append([])
 			for y in range(self.SIZE):
-				self.letters[x].append(Letter())
+				self.letters[x].append(Letter((x,y)))
 
 	def getLetters(self):
 		lettersList = []
@@ -44,66 +57,125 @@ class Board():
 		return lettersList
 
 
-	def isLegalMove(self, word):
+	def isLegalMove(self, move):
+		for rule in self.rules:
+			if not eval(rule)(move):
+				return False
+		return True
+
+
+	def availableLetter(self, move):
 		lettersList = self.getLetters()
+		word = move.getWord()
 		for letter in word:
 			if letter in lettersList:
 				lettersList.remove(letter)
 			else:
 				return False
-		for played_word in self.played_words:
-			if word == played_word:
+		return True
+
+	def repeatPlay(self, move):
+		word = move.getWord()
+		for played_move in self.played_words:
+			played_word = played_move.getWord()
+			if move == played_move:
 				return False
 			if len(word) < len(played_word):
 				for x in range(len(word)):
-					if word[x:] == played_word
+					if word[x:] == played_word:
 						return False
-		# Include check in letterpress' big list of words
 		return True
-
 
 	def makeMove(self, word, side):
 		if self.isLegalMove(word):
-			for letter in word:
+			for letter in word.getWord():
 				self.letters[letter.position[0]][letter.position[1]].changeTeam(side)
 			self._updateProtected()
-		else:
-			print "ILLEGAL MOVE"
-
-
+			self.played_words.add(word)
+		#else:
+			#print "ILLEGAL MOVE"
 
 
 	def isGameOver(self):
-		#usedLetters = 0
-		#for letter in self.letters:
-			#if letter.color is not None:
-				#usedLetters += 1
-		return sum(1 for i in self.letters if i.color is not None) == self.SIZE * self.SIZE
+		return sum([1 for i in self.getLetters() if i.color.isAssigned()]) == self.SIZE * self.SIZE
 
 
 	def isWin(self):
 		teams = {}
-		for letter in self.letters:
-			if letter.color is not None:
-				if teams[letter.color]:
-					teams[letter.color] += 1
+		for letter in self.getLetters():
+			if letter.color.isAssigned():
+				colorString = str(letter.color)
+				if colorString in teams:
+					teams[colorString] += 1
 				else:
-					teams[letter.color] = 1
+					teams[colorString] = 1
 		for team in teams:
 			if teams[team] > self.SIZE * self.SIZE / 2:
 				return team
 		return None
 
 
-
-	def legalMoves():
+	def getLegalMoves(self):
 		legalWords = []
-		words = open("word-list/Words/en.txt", "r")
-		for word in words:
+		for word in self.possibleWords:
 			if self.isLegalMove(word):
 				legalWords.append(word)
 		return legalWords
 
+
+	def calcPossibleWords(self):
+		legalWords = set()
+		words = open("word-list/Words/en.txt", "r")
+		for word in words:
+			cleanWord = "".join(letter for letter in word if letter.isalnum())
+			legalMovesFromWord = self.getLegalMovesFromWord(cleanWord)
+			if len(legalMovesFromWord) > 0:
+				for move in legalMovesFromWord:
+					if self.isLegalMove(move):
+						legalWords.add(move)
+		self.possibleWords = legalWords
+
+
+	def getLegalMovesFromWord(self, word):
+		tilesForLetter = {}
+
+		def calcTilesForLetter():
+			for tile in self.getLetters():
+				for letter in set(word):
+					if tile.value == letter:
+						if letter not in tilesForLetter:
+							tilesForLetter[letter] = [tile]
+						else:
+							tilesForLetter[letter].append(tile)
+
+		def findLegal(play):
+			if len(play) == 0:
+				return []
+			if len(play) == 1:
+				newPlay = []
+				for tile in tilesForLetter[play[0]]:
+					newPlay.append([tile])
+				return newPlay
+			plays = []
+			for tile in tilesForLetter[play[0]]:
+				for ending in findLegal(play[1:]):
+					ending.insert(0, tile)
+					plays.append(ending)
+			return plays
+
+		def possibleWord(play):
+			for letter in word:
+				letterCount = sum([1 for otherletter in word if letter == otherletter])
+				tileCount = sum([1 for tile in self.getLetters() if tile.value == letter])
+				if letterCount > tileCount:
+					return False
+			return True
+
+		if possibleWord(word):
+			calcTilesForLetter()
+			return [Move(w) for w in findLegal(word)]
+		else:
+			return []
 
 
 	def _updateProtected(self):
@@ -115,6 +187,14 @@ class Board():
 					if neighbor.color == letter.color and letter.color is not None:
 						count += 1
 				letter.protected = len(letterNeighbors) == count
+
+	def _updateLegalMoves(self):
+		legalWords = set()
+		for word in self.possibleWords:
+			if self.isLegalMove(word):
+				legalWords.add(word)
+		self.possibleWords = legalWords
+		return legalWords
 
 
 	def getNeighbors(self, letter, letterPos):
@@ -141,33 +221,3 @@ class Board():
 			string += "]\n"
 		return string
 
-
-board = Board()
-print board
-
-
-l1 = Letter((0,0))
-l2 = Letter((1,0))
-l3 = Letter((0,1))
-
-l1.value = board.letters[0][0].value
-l2.value = board.letters[1][0].value
-l3.value = board.letters[0][1].value
-move = [l1, l2, l3]
-
-l4 = Letter((0,0))
-l5 = Letter((1,0))
-l6 = Letter((2,0))
-
-l4.value = board.letters[0][0].value
-l5.value = board.letters[1][0].value
-l6.value = board.letters[2][0].value
-move2 = [l4, l5, l6]
-
-board.makeMove(move, "RED")
-
-
-import ipdb; ipdb.set_trace() # BREAKPOINT
-
-board.makeMove(move2, "BLUE")
-import ipdb; ipdb.set_trace() # BREAKPOINT
