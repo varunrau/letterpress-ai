@@ -6,7 +6,7 @@ import copy
 
 class Board():
 
-	def __init__(self, letters=[]):
+	def __init__(self, letters="cjab"):
 		self.SIZE = 2
 		self.letters = letters
 		self.played_words = set()
@@ -75,14 +75,20 @@ class Board():
 		return True
 
 	def repeatPlay(self, move):
+		#string = ""
+		#for letter in move.getWord():
+			#string += str(letter.value)
+		#print string
+		#if string == "ja":
+			#import ipdb; ipdb.set_trace() # BREAKPOINT
 		word = move.getWord()
 		for played_move in self.played_words:
 			played_word = played_move.getWord()
 			if move == played_move:
 				return False
 			if len(word) < len(played_word):
-				for x in range(len(word)):
-					if word[x:] == played_word:
+				for x in range(len(played_word)):
+					if played_word[:x] == word:
 						return False
 		return True
 

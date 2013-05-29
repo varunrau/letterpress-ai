@@ -3,7 +3,7 @@ import copy
 
 class Player:
 
-	def __init__(self, team, opponent, depth=1):
+	def __init__(self, team, opponent, depth=0):
 		self.depth = depth
 		self.team = team
 		self.opponent = opponent
@@ -15,7 +15,7 @@ class Player:
 
 		def maxAgent(state, depth, alpha, beta):
 			if state.isGameOver():
-				return 10 * state.getScore(self.team) if self.team == state.isWin() else -1 * state.getScore(self.team)
+				return self.evalBoard(state)
 			actions = state.getLegalMoves()
 			best_score = float("-inf")
 			score = best_score
@@ -23,6 +23,8 @@ class Player:
 			for action in actions:
 				newState = copy.deepcopy(state).generateSuccessor(action, self.team)
 				score = minAgent(newState, depth, alpha, beta)
+				#if depth == 0:
+					#print str(action.getWord()) + "\t" + str(score)
 				if score > best_score:
 					best_score = score
 					best_action = action
@@ -36,15 +38,15 @@ class Player:
 
 		def minAgent(state, depth, alpha, beta):
 			if state.isGameOver():
-				return 10 * state.getScore(self.team) if self.team == state.isWin() else -1 * state.getScore(self.team)
+				return self.evalBoard(state)
 			actions = state.getLegalMoves()
 			best_score = float("inf")
 			score = best_score
 			best_action = actions[0]
 			for action in actions:
 				if depth == self.depth - 1:
-					newState = copy.copy(state)
-					score = self.evalBoard(newState.generateSuccessor(action, self.opponent), self.opponent)
+					newState = copy.deepcopy(state).generateSuccessor(action, self.opponent)
+					score = self.evalBoard(newState)
 				else:
 					newState = copy.deepcopy(state)
 					score = maxAgent(newState.generateSuccessor(action, self.opponent), depth + 1, alpha, beta)
@@ -85,7 +87,7 @@ class Player:
 				"tilesLeft" : 1,
 				"score" : 1
 				}
-		return board.getScore(team)
+		return board.getScore(self.team)
 
 	#def evalMove(self, board, move, team):
 
