@@ -11,7 +11,10 @@ class Move:
 		return self.letters
 
 	def __str__(self):
-		return str(self.letters)
+		toPrint = ""
+		for letter in self.getWord():
+			toPrint += letter
+		return toPrint
 
 	def __eq__(self, otherMove):
 		otherWord = otherMove.getWord()

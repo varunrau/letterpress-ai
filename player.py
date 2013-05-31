@@ -1,9 +1,10 @@
 from board import Board
+from util import SimpleVector, PriorityQueueWithFunction
 import copy
 
 class Player:
 
-	def __init__(self, team, opponent, depth=0):
+	def __init__(self, team, opponent, depth=1):
 		self.depth = depth
 		self.team = team
 		self.opponent = opponent
@@ -12,19 +13,17 @@ class Player:
 		return self.getMove(board)
 
 	def getMove(self, board):
-
 		def maxAgent(state, depth, alpha, beta):
 			if state.isGameOver():
 				return self.evalBoard(state)
-			actions = state.getLegalMoves()
+			actions = state.getLegalMovesWithPriority(self.evalMove, 50, self.team)
 			best_score = float("-inf")
 			score = best_score
-			best_action = actions[0]
-			for action in actions:
+			best_action = actions.get()
+			while not actions.isEmpty():
+				action = actions.pop()
 				newState = copy.deepcopy(state).generateSuccessor(action, self.team)
 				score = minAgent(newState, depth, alpha, beta)
-				#if depth == 0:
-					#print str(action.getWord()) + "\t" + str(score)
 				if score > best_score:
 					best_score = score
 					best_action = action
@@ -39,11 +38,12 @@ class Player:
 		def minAgent(state, depth, alpha, beta):
 			if state.isGameOver():
 				return self.evalBoard(state)
-			actions = state.getLegalMoves()
+			actions = state.getLegalMovesWithPriority(self.evalMove, 50, self.opponent)
 			best_score = float("inf")
 			score = best_score
-			best_action = actions[0]
-			for action in actions:
+			best_action = actions.get()
+			while not actions.isEmpty():
+				action = actions.pop()
 				if depth == self.depth - 1:
 					newState = copy.deepcopy(state).generateSuccessor(action, self.opponent)
 					score = self.evalBoard(newState)
@@ -61,36 +61,78 @@ class Player:
 
 	def evalBoard(self, board):
 
-		def getProtected():
+		def protected():
 			return sum([1 for letter in board.getLetters() if letter.color == self.team and letter.protected])
 
-		def getOppProtected():
+		def oppProtected():
 			return sum([1 for letter in board.getLetters() if letter.color != self.team and letter.protected])
 
 		def tilesLeft():
 			return sum([1 for letter in board.getLetters() if not letter.color.isAssigned()])
 
 		def score():
-			return board.getScore()
+			return board.getScore(self.team)
 
+		weights = self.getBoardWeightVector()
+		features = SimpleVector()
 
-		weights = {
-				"myProtected" : 1,
-				"oppProtected" : 1,
-				"tilesLeft" : 1,
-				"score" : 1
-				}
+		for feature in weights:
+			features[feature] = eval(feature)()
 
-		features = {
-				"myProtected" : 1,
-				"oppProtected" : 1,
-				"tilesLeft" : 1,
-				"score" : 1
-				}
-		return board.getScore(self.team)
+		return features * weights
 
-	#def evalMove(self, board, move, team):
+	def getBoardWeightVector(self):
+		weights = SimpleVector()
+		weights["protected"] = 1
+		weights["oppProtected"] = -1
+		weights["tilesLeft"] = 1
+		weights["score"] = 1
+		weights.normalize()
+		return weights
 
+	def evalMove(self, args):
+		board, move, team = args
 
+		def length():
+			return len(move.getWord())
+		def scoreDifference():
+			originalScore = board.getScore(team)
+			newBoard = copy.deepcopy(board)
+			newBoard.makeMove(move, team)
+			newScore = newBoard.getScore(team)
+			return newScore - originalScore
+		def protectedDifference():
+			original = sum([1 for letter in board.getLetters() if letter.protected and letter.color == team])
+			newBoard = copy.deepcopy(board)
+			newBoard.makeMove(move, team)
+			new = sum([1 for letter in newBoard.getLetters() if letter.protected and letter.color == team])
+			return new - original
+		def oppProtectedDiffernece():
+			original = sum([1 for letter in board.getLetters() if letter.protected and not letter.color == team])
+			newBoard = copy.deepcopy(board)
+			newBoard.makeMove(move, team)
+			new = sum([1 for letter in newBoard.getLetters() if letter.protected and not letter.color == team])
+			return new - original
+		def tilesLeftDifference():
+			original = sum([1 for letter in board.getLetters() if not letter.color.isAssigned()])
+			newBoard = copy.deepcopy(board)
+			newBoard.makeMove(move, team)
+			new = sum([1 for letter in newBoard.getLetters() if not letter.color.isAssigned()])
+			return new - original
 
+		weights = self.getMoveWeightVector()
+		features = SimpleVector()
+		for feature in weights:
+			features[feature] = eval(feature)()
+		return features * weights
+
+	def getMoveWeightVector(self):
+		weights = SimpleVector()
+		weights["length"] = 1
+		weights["scoreDifference"] = 1
+		weights["protectedDifference"] = 1
+		weights["oppProtectedDiffernece"] = 1
+		weights["tilesLeftDifference"] = 1
+		weights.normalize()
+		return weights
 

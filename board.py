@@ -2,12 +2,13 @@ import random
 from letter import Letter
 from side import Side
 from move import Move
+from util import PriorityQueueWithFunction
 import copy
 
 class Board():
 
-	def __init__(self, letters="cjab"):
-		self.SIZE = 2
+	def __init__(self, letters=[]):
+		self.SIZE = 5
 		self.letters = letters
 		self.played_words = set()
 		self.rules = ["self.availableLetter", "self.repeatPlay"]
@@ -17,8 +18,6 @@ class Board():
 			self.randomizeLetters()
 		self.possibleWords = set()
 		self.calcPossibleWords()
-		print len(self.possibleWords)
-		print [w.getWord() for w in self.possibleWords]
 
 
 	def generateSuccessor(self, word, team):
@@ -126,6 +125,15 @@ class Board():
 		for word in self.possibleWords:
 			if self.isLegalMove(word):
 				legalWords.append(word)
+		return legalWords
+
+	def getLegalMovesWithPriority(self, priorityFunction, n, team):
+		legalWords = PriorityQueueWithFunction(priorityFunction)
+		for word in self.possibleWords:
+			if len(legalWords) >= n:
+				return legalWords
+			if self.isLegalMove(word):
+				legalWords.push(self, word, team)
 		return legalWords
 
 

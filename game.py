@@ -10,12 +10,10 @@ def play(board, player1, player2):
 			move = player1.getMove(board)
 			board.makeMove(move, "BLUE")
 			print "Player 1 played " + str(move)
-			print [w.getWord() for w in board.possibleWords]
 		else:
 			move = player2.getMove(board)
 			board.makeMove(move, "RED")
 			print "Player 2 played " + str(move)
-			print [w.getWord() for w in board.possibleWords]
 		print board
 		isFirstTurn = not isFirstTurn
 	print "The winner is " + str(board.isWin())
