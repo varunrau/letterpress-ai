@@ -1,5 +1,9 @@
 
 class Color:
+	"""
+	A class useful for drawing on the terminal with color.
+	Tested on Mac OS X (iTerm 2).
+	"""
 
 	HEADER = '\033[95m'
 	BLUE = '\033[94m'

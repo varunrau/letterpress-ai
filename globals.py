@@ -1,0 +1,5 @@
+
+SIZE = 5
+DEPTH = 2
+NUM_ACTIONS = 10
+

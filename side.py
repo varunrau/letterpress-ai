@@ -1,5 +1,8 @@
 
 class Side():
+	"""
+	An object to represent the side of a letter.
+	"""
 
 	def __init__(self, team=None):
 		self.team = team

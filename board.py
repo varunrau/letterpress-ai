@@ -3,12 +3,21 @@ from letter import Letter
 from side import Side
 from move import Move
 from util import PriorityQueueWithFunction
+import globals
 import copy
 
 class Board():
+	"""
+	A representation of a letterpress board.
+	"""
 
 	def __init__(self, letters=[]):
-		self.SIZE = 5
+		"""
+		Initialize the board.
+		@param letters - Initialize the board with letters. These can be a
+		matrix of letter of objects or a string. Optional.
+		"""
+		self.SIZE = globals.SIZE
 		self.letters = letters
 		self.played_words = set()
 		self.rules = ["self.availableLetter", "self.repeatPlay"]
@@ -21,17 +30,31 @@ class Board():
 
 
 	def generateSuccessor(self, word, team):
+		"""
+		Generates the successor to this board after playing word.
+		@param word - the word to play. A move object.
+		@param team - the team that is playing that word. String.
+		@return a board object.
+		"""
 		self.makeMove(word, team)
 		self._updateLegalMoves()
 		return self
 
 
 	def getScore(self, team):
+		"""
+		The current score based on the team. Based on the way the Letterpress app scores.
+		@param team - the team's score. String.
+		@return the Letterpress score of the board for the team.
+		"""
 		teamScore = sum([1 for i in self.getLetters() if i.color == team])
 		otherScore = sum([1 for i in self.getLetters() if not i.color == team and not i.color.isAssigned()])
 		return teamScore - otherScore
 
 	def parseString(self):
+		"""
+		Reevaluates the board's letters from a string representation to a matrix representation.
+		"""
 		string = []
 		for letter in self.letters:
 			string.append(letter)
@@ -43,12 +66,19 @@ class Board():
 
 
 	def randomizeLetters(self):
+		"""
+		Calculates new random letters for the board.
+		"""
 		for x in range(self.SIZE):
 			self.letters.append([])
 			for y in range(self.SIZE):
 				self.letters[x].append(Letter((x,y)))
 
 	def getLetters(self):
+		"""
+		The board's letters. Returned as a list.
+		@return a list of the board's letters
+		"""
 		lettersList = []
 		for row in self.letters:
 			for letter in row:
@@ -57,6 +87,11 @@ class Board():
 
 
 	def isLegalMove(self, move):
+		"""
+		True iff the move is legal.
+		@param move - the move to consider.
+		@return boolean for whether the move is legal.
+		"""
 		for rule in self.rules:
 			if not eval(rule)(move):
 				return False
@@ -64,6 +99,12 @@ class Board():
 
 
 	def availableLetter(self, move):
+		"""
+		One of Letterpress's rules. True iff the board has all the letters that the move
+		needs.
+		@param move - the move to consider.
+		@return true iff this rule is statisfied.
+		"""
 		lettersList = self.getLetters()
 		word = move.getWord()
 		for letter in word:
@@ -74,12 +115,12 @@ class Board():
 		return True
 
 	def repeatPlay(self, move):
-		#string = ""
-		#for letter in move.getWord():
-			#string += str(letter.value)
-		#print string
-		#if string == "ja":
-			#import ipdb; ipdb.set_trace() # BREAKPOINT
+		"""
+		One of Letterpress' rules. True iff the word has not been played before and
+		this word is not a prefix of a previously played word.
+		@param move - the move to consider. A move object.
+		@return true iff this rule is satisfied.
+		"""
 		word = move.getWord()
 		for played_move in self.played_words:
 			played_word = played_move.getWord()
@@ -92,20 +133,31 @@ class Board():
 		return True
 
 	def makeMove(self, word, side):
+		"""
+		Plays the move provided.
+		@param word - the word to play. This must be a move object.
+		@param side - the side to play for. String.
+		"""
 		if self.isLegalMove(word):
 			for letter in word.getWord():
 				self.letters[letter.position[0]][letter.position[1]].changeTeam(side)
 			self._updateProtected()
 			self.played_words.add(word)
-		#else:
-			#print "ILLEGAL MOVE"
 
 
 	def isGameOver(self):
+		"""
+		Checks if the game is over.
+		@return True iff all the letters are assigned a color.
+		"""
 		return sum([1 for i in self.getLetters() if i.color.isAssigned()]) == self.SIZE * self.SIZE
 
 
 	def isWin(self):
+		"""
+		Checks to see if the game is over and returns the winner.
+		@return the winning team. String.
+		"""
 		teams = {}
 		for letter in self.getLetters():
 			if letter.color.isAssigned():
@@ -121,6 +173,12 @@ class Board():
 
 
 	def getLegalMoves(self):
+		"""
+		All the legal words to play for this board.
+		Note: This method is rarely useful because the list will in most cases be too large to process
+		in a reasonable amount of time.
+		@return a list of all legal moves.
+		"""
 		legalWords = []
 		for word in self.possibleWords:
 			if self.isLegalMove(word):
@@ -128,6 +186,16 @@ class Board():
 		return legalWords
 
 	def getLegalMovesWithPriority(self, priorityFunction, n, team):
+		"""
+		The first n legal moves to play for this board ordered by the
+		priority given to it by the priority function.
+		@param priorityFunction - a function that assigns a priority to a move.
+		It must accept a board, move, and string as parameters.
+		@param n - the number of moves to return
+		@param team - the team. Note: this parameter is not needed to return legality of moves
+		but it is useful for ordering them.
+		@return a list of n legal moves
+		"""
 		legalWords = PriorityQueueWithFunction(priorityFunction)
 		for word in self.possibleWords:
 			if len(legalWords) >= n:
@@ -138,6 +206,10 @@ class Board():
 
 
 	def calcPossibleWords(self):
+		"""
+		Initialization method. Used to calculate all the possible moves
+		on the board based on the current board.
+		"""
 		legalWords = set()
 		words = open("word-list/Words/en.txt", "r")
 		for word in words:
@@ -151,6 +223,11 @@ class Board():
 
 
 	def getLegalMovesFromWord(self, word):
+		"""
+		Returns all legal moves for a given word.
+		@param word - the word to get legal moves from. A String.
+		@return a list of all legal moves (move objects) for this board.
+		"""
 		tilesForLetter = {}
 
 		def calcTilesForLetter():
@@ -195,7 +272,7 @@ class Board():
 	def _updateProtected(self):
 		for rowIndex, row in enumerate(self.letters):
 			for colIndex, letter in enumerate(row):
-				letterNeighbors = self.getNeighbors(letter, (rowIndex, colIndex))
+				letterNeighbors = self._getNeighbors(letter, (rowIndex, colIndex))
 				count = 0
 				for neighbor in letterNeighbors:
 					if neighbor.color == letter.color and letter.color is not None:
@@ -211,7 +288,7 @@ class Board():
 		return legalWords
 
 
-	def getNeighbors(self, letter, letterPos):
+	def _getNeighbors(self, letter, letterPos):
 		neighbors = []
 		for dx in range(-1, 2):
 			for dy in range(-1, 2):
@@ -225,6 +302,10 @@ class Board():
 
 
 	def __repr__(self):
+		"""
+		The representation of the board.
+		@return a string that represents the board.
+		"""
 		string = ""
 		for row in self.letters:
 			string += "["

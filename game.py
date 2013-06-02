@@ -9,11 +9,12 @@ def play(board, player1, player2):
 		if isFirstTurn:
 			move = player1.getMove(board)
 			board.makeMove(move, "BLUE")
-			print "Player 1 played " + str(move)
+			print "Player 1 played " + str(move) + "\t" + str(player.evalMove(board, move, "BLUE"))
 		else:
 			move = player2.getMove(board)
 			board.makeMove(move, "RED")
-			print "Player 2 played " + str(move)
+			print "Player 2 played " + str(move) + "\t" + str(player.evalMove(board, move, "BLUE"))
+
 		print board
 		isFirstTurn = not isFirstTurn
 	print "The winner is " + str(board.isWin())
