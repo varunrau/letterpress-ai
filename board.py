@@ -22,7 +22,12 @@ class Board():
 		self.played_words = set()
 		self.rules = ["self.availableLetter", "self.repeatPlay"]
 		if isinstance(self.letters, basestring):
-			self.parseString()
+			letters = []
+			for index, pair in enumerate(letters):
+				pos = (index % globals.SIZE, index / globals.SIZE)
+				letter = Letter(pos, pair[0], pair[1])
+				letters.append(letter)
+			self.letters = letters
 		else:
 			self.randomizeLetters()
 		self.possibleWords = set()
@@ -51,12 +56,12 @@ class Board():
 		otherScore = sum([1 for i in self.getLetters() if not i.color == team and not i.color.isAssigned()])
 		return teamScore - otherScore
 
-	def parseString(self):
+	def parseString(self, ls):
 		"""
 		Reevaluates the board's letters from a string representation to a matrix representation.
 		"""
 		string = []
-		for letter in self.letters:
+		for letter in ls:
 			string.append(letter)
 		self.letters = []
 		for x in range(self.SIZE):

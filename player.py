@@ -1,9 +1,11 @@
 import globals
 from board import Board
-from util import SimpleVector, PriorityQueueWithFunction
+import util
 import copy
+import json
 
-class Player:
+
+class MachinePlayer():
 	"""
 	The AI that plays letterpress. Powered by the minimax algorithm with alpha-beta pruning.
 	"""
@@ -95,7 +97,7 @@ class Player:
 			return board.getScore(self.team)
 
 		weights = self.getBoardWeightVector()
-		features = SimpleVector()
+		features = util.SimpleVector()
 
 		for feature in weights:
 			features[feature] = eval(feature)()
@@ -107,7 +109,7 @@ class Player:
 		A weight vector for the board evaluation.
 		@return A SimpleVector object used for board evaluation.
 		"""
-		weights = SimpleVector()
+		weights = util.SimpleVector()
 		weights["protected"] = 1
 		weights["oppProtected"] = -1
 		weights["tilesLeft"] = 1
@@ -153,7 +155,7 @@ class Player:
 			return new - original
 
 		weights = self.getMoveWeightVector()
-		features = SimpleVector()
+		features = util.SimpleVector()
 		for feature in weights:
 			features[feature] = eval(feature)()
 		return features * weights
@@ -163,13 +165,58 @@ class Player:
 		The weight vector used to evaluate a move.
 		@return a SimpleVector object of move weights.
 		"""
-		weights = SimpleVector()
+		weights = util.SimpleVector()
 		weights["length"] = 1
-		weights["scoreDifference"] = 1
-		weights["protectedDifference"] = 2
-		weights["oppProtectedDiffernece"] = -1
+		weights["scoreDifference"] = 0
+		weights["protectedDifference"] = 0
+		weights["oppProtectedDiffernece"] = -0
 		weights["tilesLeftDifference"] = 0
 		weights.normalize()
 		return weights
 
+
+class HumanPlayer():
+
+	def getMove(self, moveJson):
+		move = parseMove(moveJson)
+		return move
+
+	def parseMove(jsonData):
+		"""
+		Move Json is expected in the following format:
+		[
+			Representation of the board. There should be globals.SIZE * globals.SIZE
+			pairs. The first should be a character for the letter at that position and the
+			second should be a string for the team that currently owns that tile.
+			The order of the letters should be like this.
+			[ 0 1 2 3 4 ]
+			[ 5 6 7 8 9 ]
+			...
+
+			[
+				(letter, team)
+			],
+
+			Representation of a move. Each item in this list is a
+			ordered pair representing a letter on the board.
+			[
+				(x, y)
+			]
+		]
+		"""
+		moveJson = json.loads(moveJson)
+		boardJson = moveJson[0]
+		moveJson = moveJson[1]
+		letters = []
+		for index, pair in enumerate(boardJson):
+			pos = (index % globals.SIZE, index / globals.SIZE)
+			letter = Letter(pos, pair[0], pair[1])
+			letters.append(letter)
+		board = Board(letters)
+		moveList = []
+		for letter in moveJson:
+			x, y = letter[0], letter[1]
+			letterNum = y * globals.SIZE + x
+			moveList.append(letters[letterNum])
+		return Move(moveList)
 

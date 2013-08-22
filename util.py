@@ -1,4 +1,5 @@
 import heapq
+import inspect
 
 class SimpleVector(dict):
 	"""
@@ -103,6 +104,9 @@ class PriorityQueueWithFunction(PriorityQueue):
 		PriorityQueue.push(self, params[1], self.fn(params))
 
 
+def raiseNotDefined():
+    print "*** Method not implemented: %s" % inspect.stack()[1][3]
+    sys.exit(1)
 
 
 
